@@ -1,5 +1,5 @@
 <template>
-  <div class="ratings">
+  <div class="ratings" ref="ratings">
     <div class="rating-content">
       <div class="overview">
         <div class="overview-left">
@@ -20,30 +20,120 @@
           </div>
           <div class="delivery-wrapper">
             <span class="title">送达时间</span>
-            <span class="delivery">{{seller.deliveryTime}}</span>
+            <span class="delivery">{{seller.deliveryTime}}分钟</span>
           </div>
         </div>
+        <split></split>
+        <!-- <ratingselect></ratingselect> -->
+        <ratingselect :select-type="selectType" :only-content="onlyContent" :desc="desc" :ratings="ratings"></ratingselect>
+      </div>
+      <div class="rating-wrapper">
+        <ul><!--li 中添加  v-show="needShow(rating.rateType.rating.text)"-->
+          <li v-for="rating in ratings" class="rating-item">
+            <div class="avatar">
+              <img width="28" height="28" :src="rating.avatar">
+            </div>
+            <div class="content">
+              <h1 class="name">{{rating.username}}</h1>
+              <div class="star-wrapper">
+                <star :size="24" :score="rating.score"></star>
+                <span class="delivery" v-show="rating.deiveryTime">{{rating.deliveryTime}}</span>
+              </div>
+              <p class="text">{{rating.text}}</p>
+              <div class="recommend" v-show="rating.recommend && rating.recommend.length">
+                <span class="icon-thumb_up"></span>
+                <span class="item" v-for="item in rating.recommend">{{item}}</span>
+              </div>
+              <div class="deiveryTime">{{rating.rateTime | formatDate}}</div>
+            </div>
+          </li>
+        </ul>
       </div>
     </div>
   </div>
 </template>
 
 <script type="text/ecmascript-6">
-  import star from '../star/star';
+import BScroll from 'better-scroll';
+import { formaDate } from '../../common/js/data.js';
+import star from '../star/star';
+import ratingselect from '../ratingselect/ratingselect';
+import split from '../split/split';
+import Axios from 'axios';
 
-  export default{
-    props: {
-      seller: {
-        type: Object
-      }
-    },
-    components: {
-      star
+const ALL = 2;
+const ERR_OK = 0;
+
+export default {
+  props: {
+    seller: {
+      type: Object
     }
-  };
+  },
+  data() {
+    return {
+      ratings: [],
+      selectType: ALL,
+      onlyContent: true
+    };
+  },
+  created() {
+    Axios.get('/api/ratings').then((response) => {
+      var res = response.data;
+      if (res.errno === ERR_OK) {
+        this.ratings = res.data;
+        this.$nextTick(() => {
+          this.scroll = new BScroll(this.$refs.ratings, {
+            click: true
+          });
+        });
+      }
+    });
+  },
+  filters: {
+    formDate(time) {
+      let date = new Date(time);
+      return formaDate(date, 'yyyy-MM-dd hh:mm');
+    }
+  },
+  // events:{
+  //   //联动扩展
+  //   'ratingtypr.select'(type){
+  //     this.selcetType = type;
+  //     this.$nextTick(()=>{
+  //       this.scroll.refresh();
+  //     });
+  //   },
+  //   'content.toggle'(onlyContent){
+  //     this.onlyContent = onlyContent;
+  //     this.$nextTick(()=>{
+  //       this.scroll.refresh();
+  //     });
+  //   }
+  // },
+  // methods:{
+  //   needShow(type,text){
+  //     if(this.onlyContent && !text){
+  //       return false;
+  //     }
+  //     if(this.selectType === ALL){
+  //       return true;
+  //     }else{
+  //       return type === this.selectType;
+  //     }
+  //   }
+  // },
+  components: {
+    star,
+    ratingselect,
+    split
+  }
+};
 </script>
 
 <style lang="stylus" rel="stylesheet/stylus">
+@import "../../common/stylus/mixin.styl"
+
   .ratings
     position: absolute
     top: 174px
@@ -111,4 +201,65 @@
             margin-left: 12px
             font-size: 12px
             color: rgb(147, 153, 159)
+    .rating-wrapper
+      padding: 0 18px
+      .rating-item
+        display flex
+        padding 18px 0
+        border-1px(rgba(7,17,27,0.2))
+        .avatar
+          flex:0 0 28px
+          width:28px
+          margin-right 12px
+        img
+          border-radius 50%
+        .content
+          position relative
+          flex 1
+        .name
+          margin-bottom 4px
+          line-height 12px
+          font-size 10px
+          color rgb(7,17,27)
+        .star-wrapper
+          margin-bottom 6px
+          font-size 0
+          .star
+            display inline-block
+            margin-right 6px
+            vertical-align top
+          .delivery
+            display inline-block
+            vertical-align top
+            line-height  12px
+            font-size 10px
+             color rgb(147,153,159)
+        .text
+          margin-bottom:18px
+          line-height 18px
+          color:rgb(7,17,27)
+          font-size 12px
+        .recommend
+          line-height 16px
+          font-size 0
+          .icon-thumb_up, .item
+            display inline-block
+            margin:0 8px 4px 0
+            font-size 9px
+          .icon-thumb_up
+            color:rgb(0,160,220)
+          .item
+            padding:0 6px
+            border:1px solid rgba(7,17,27,0.1)
+            border-radius 1px
+            color rgb(147,153,159)
+            background #fff
+        .deiveryTime
+          position absolute
+          top 0
+          right 0
+          line-height 12px
+          font-size 10px
+          color rgb(147,153,159)
 </style>
+
